@@ -249,12 +249,12 @@
             <FadeUp delay={0.42} y={16}>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                 <div className="glass" style={{ padding:'10px 20px', display:'inline-flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(18px,2vw,24px)', fontWeight:800, color:'#fff' }}>$1,599</span>
+                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(18px,2vw,24px)', fontWeight:800, color:'#fff' }}>42.990kč</span>
                   <div style={{ width:1, height:20, background:'rgba(255,255,255,0.18)' }}/>
                   <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'rgba(255,255,255,0.42)' }}>počáteční cena</span>
                 </div>
                 <div className="glass" style={{ padding:'10px 14px' }}>
-                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.6)' }}>27" · Thunderbolt 3</span>
+                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.6)' }}>27" · Thunderbolt 5</span>
                 </div>
               </div>
             </FadeUp>
@@ -333,15 +333,15 @@
             </FadeUp>
             <FadeUp delay={0.30} y={20}>
               <p style={{ fontFamily:'DM Sans,sans-serif', fontSize:'clamp(12px,1.3vw,15px)', fontWeight:300, color:'rgba(255,255,255,0.52)', lineHeight:1.75, maxWidth:370, marginBottom:'1.6rem' }}>
-                Nejlepší profesionální displej na světě. 32 palců dechberoucího 6K Retina pro filmovou tvorbu, korekci barev, úpravu fotografií a vědeckou vizualizaci.
+                Nejlepší profesionální displej na světě. 27 palců dechberoucího 5K Retina pro filmovou tvorbu, korekci barev, úpravu fotografií a vědeckou vizualizaci.
               </p>
             </FadeUp>
             <FadeUp delay={0.42} y={16}>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {[
                   { k:'Sklo displeje', v:'Nano-texture nebo standard' },
-                  { k:'Obnovovací frekvence', v:'60Hz · ProMotion-ready' },
-                  { k:'Cena od', v:'$4,999' },
+                  { k:'Obnovovací frekvence', v:'120Hz · ProMotion-ready' },
+                  { k:'Cena od', v:'84.990Kč' },
                 ].map((item,i) => (
                   <div key={i} className="glass" style={{ padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{item.k}</span>
@@ -359,15 +359,15 @@
   /* ─── SLIDE 4 — COMPARISON ────────────────────────────────────── */
   const CompareSlide = () => {
     const rows = [
-      { f:'Velikost obrazovky',       s:'27"',                    p:'32"' },
-      { f:'Rozlišení',                s:'5K · 5120×2880',         p:'6K · 6016×3384' },
+      { f:'Velikost obrazovky',       s:'27"',                    p:'27"' },
+      { f:'Rozlišení',                s:'5K · 5120×2880',         p:'5K · 5120×2880' },
       { f:'Pixelů na palec',          s:'218 ppi',                p:'218 ppi' },
       { f:'Max. jas (SDR)',           s:'600 nitů',               p:'1 000 nitů' },
-      { f:'Špičkový jas (HDR)',       s:'—',                      p:'1 600 nitů' },
+      { f:'Špičkový jas (HDR)',       s:'—',                      p:'2 000 nitů' },
       { f:'Kontrastní poměr',         s:'1 000:1',                p:'1 000 000:1' },
-      { f:'Vestavěná kamera',         s:'12MP Ultra Wide',        p:'—' },
+      { f:'Vestavěná kamera',         s:'12MP Ultra Wide',        p:'12MP Ultra Wide' },
       { f:'Nano-texture sklo',        s:'Volitelně',              p:'Volitelně' },
-      { f:'Cena od',                  s:'$1 599',                 p:'$4 999' },
+      { f:'Cena od',                  s:'42 990Kč',                 p:'84 990Kč' },
       { f:'Ideální pro',              s:'Kreativce a týmy',       p:'Film a vědu' },
     ];
     return (
