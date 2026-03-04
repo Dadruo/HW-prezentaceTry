@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apple Displays</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #root { width: 100%; height: 100%; }
+    ::-webkit-scrollbar { display: none; }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-22px) scale(1.03); }
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.94); opacity: 0.6; }
+      70% { transform: scale(1.04); opacity: 0; }
+      100% { transform: scale(1.04); opacity: 0; }
+    }
+
+    .orb { position: absolute; border-radius: 50%; pointer-events: none; }
+    .float-anim { animation: float 7s ease-in-out infinite; }
+    .float-anim-2 { animation: float 9s ease-in-out infinite reverse; }
+    .float-anim-3 { animation: float 11s ease-in-out infinite 2s; }
+
+    .glass {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+    }
+    .glass-strong {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 20px;
+    }
+
+    .grid-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+    }
+
+    button { cursor: pointer; border: none; background: none; outline: none; }
+    button:focus-visible { outline: 2px solid rgba(255,255,255,0.4); outline-offset: 2px; border-radius: 50px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const { motion, AnimatePresence } = Motion;
+
+  const N = 4;
+
+  /* ─── Reusable atoms ──────────────────────────────────────────── */
+
+  const Orb = ({ c, s, top, left, opacity = 0.18, blur = 140, cls = '' }) => (
+    <div className={`orb ${cls}`} style={{
+      width: s, height: s, background: c,
+      top, left, filter: `blur(${blur}px)`, opacity,
+    }} />
+  );
+
+  const FadeUp = ({ delay = 0, y = 28, children, style }) => (
+    <motion.div
+      initial={{ opacity: 0, y }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+
+  /* ─── Display SVG ─────────────────────────────────────────────── */
+  const DisplaySVG = ({ accent, w = 300 }) => {
+    const h = w * 0.62;
+    const sw = w * 0.88, sh = h * 0.80;
+    const sx = (w - sw) / 2, sy = (h - sh) / 2;
+    const id = accent.replace('#','');
+    return (
+      <svg width={w} height={h+50} viewBox={`0 0 ${w} ${h+50}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id={`sg${id}`} cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stopColor={accent} stopOpacity="0.35"/>
+            <stop offset="60%" stopColor={accent} stopOpacity="0.06"/>
+            <stop offset="100%" stopColor="#000" stopOpacity="0.9"/>
+          </radialGradient>
+          <filter id={`gf${id}`}>
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id={`bg${id}`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#1c1c22"/>
+            <stop offset="100%" stopColor="#0d0d10"/>
+          </radialGradient>
+        </defs>
+        {/* Body */}
+        <rect x={1} y={1} width={w-2} height={h-2} rx={13} fill={`url(#bg${id})`} stroke="rgba(255,255,255,0.12)" strokeWidth={1.2}/>
+        {/* Chin highlight */}
+        <rect x={1} y={h-22} width={w-2} height={21} rx={4} fill="rgba(0,0,0,0.3)"/>
+        {/* Screen */}
+        <rect x={sx} y={sy} width={sw} height={sh} rx={5} fill={`url(#sg${id})`} filter={`url(#gf${id})`}/>
+        {/* Screen border glow */}
+        <rect x={sx} y={sy} width={sw} height={sh} rx={5} fill="none" stroke={accent} strokeWidth={0.8} strokeOpacity={0.5}/>
+        {/* Screen sheen */}
+        <rect x={sx} y={sy} width={sw} height={sh/2.8} rx={5} fill="rgba(255,255,255,0.035)"/>
+        {/* Pixel grid hint */}
+        <rect x={sx+2} y={sy+2} width={sw-4} height={sh-4} rx={4}
+          fill="none" stroke={accent} strokeWidth={0.3} strokeOpacity={0.15}
+          strokeDasharray="2 8"/>
+        {/* Apple mark */}
+        <circle cx={w/2} cy={h-11} r={3.5} fill="rgba(255,255,255,0.18)"/>
+        {/* Stand neck */}
+        <rect x={w/2-5} y={h-1} width={10} height={32} rx={5} fill="url(#st)"/>
+        <defs>
+          <linearGradient id="st" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="#252527"/>
+            <stop offset="50%" stopColor="#3a3a3d"/>
+            <stop offset="100%" stopColor="#252527"/>
+          </linearGradient>
+        </defs>
+        {/* Base */}
+        <ellipse cx={w/2} cy={h+34} rx={36} ry={8} fill="rgba(35,35,38,0.95)" stroke="rgba(255,255,255,0.09)" strokeWidth={1}/>
+        <ellipse cx={w/2} cy={h+33} rx={34} ry={6} fill="rgba(55,55,58,0.4)"/>
+      </svg>
+    );
+  };
+
+  /* ─── Spec Card ───────────────────────────────────────────────── */
+  const SpecCard = ({ icon, label, value, sub, accent }) => (
+    <motion.div
+      className="glass"
+      style={{ padding: '16px 18px' }}
+      whileHover={{ scale: 1.03, borderColor: `${accent}44` }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+    >
+      <div style={{ fontSize: 20, marginBottom: 6 }}>{icon}</div>
+      <div style={{ fontFamily: 'Outfit,sans-serif', fontSize: 'clamp(18px,2.2vw,26px)', fontWeight: 800, color: accent, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+      <div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 13, fontWeight: 500, color: '#e8e8e8', marginTop: 4 }}>{label}</div>
+      <div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
+    </motion.div>
+  );
+
+  /* ─── SLIDE 1 — HERO ──────────────────────────────────────────── */
+  const HeroSlide = () => (
+    <div style={{ width:'100%', height:'100%', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column' }}>
+      <div className="grid-bg"/>
+      <Orb c="#0066FF" s="700px" top="-18%" left="-14%" opacity={0.14} blur={180} cls="float-anim"/>
+      <Orb c="#7B2FBE" s="550px" top="30%" left="55%" opacity={0.17} blur={160} cls="float-anim-2"/>
+      <Orb c="#FF6B00" s="280px" top="65%" left="28%" opacity={0.11} blur={120} cls="float-anim-3"/>
+
+      {/* Decorative ring */}
+      <div style={{ position:'absolute', width:'min(70vw,600px)', height:'min(70vw,600px)', borderRadius:'50%', border:'1px solid rgba(255,255,255,0.04)', pointerEvents:'none' }}/>
+      <div style={{ position:'absolute', width:'min(50vw,420px)', height:'min(50vw,420px)', borderRadius:'50%', border:'1px solid rgba(255,255,255,0.06)', pointerEvents:'none' }}/>
+
+      <FadeUp delay={0.1} y={30}>
+        <p style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(10px,1.2vw,14px)', fontWeight:400, letterSpacing:'0.42em', color:'rgba(255,255,255,0.4)', textTransform:'uppercase', textAlign:'center', marginBottom:'1.2rem' }}>
+          Introducing
+        </p>
+      </FadeUp>
+
+      <FadeUp delay={0.22} y={55} style={{ textAlign:'center' }}>
+        <h1 style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(64px,12vw,148px)', fontWeight:900, letterSpacing:'-0.04em', lineHeight:0.88, color:'#fff', userSelect:'none' }}>
+          Apple
+        </h1>
+      </FadeUp>
+
+      <FadeUp delay={0.38} y={55} style={{ textAlign:'center' }}>
+        <h1 style={{
+          fontFamily:'Outfit,sans-serif', fontSize:'clamp(64px,12vw,148px)', fontWeight:900,
+          letterSpacing:'-0.04em', lineHeight:0.88, userSelect:'none',
+          background:'linear-gradient(115deg, #00C4FF 10%, #8B2FE8 52%, #FF6B00 90%)',
+          WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+        }}>
+          Displays
+        </h1>
+      </FadeUp>
+
+      <FadeUp delay={0.56} y={24}>
+        <p style={{ fontFamily:'DM Sans,sans-serif', fontSize:'clamp(13px,1.6vw,18px)', fontWeight:300, color:'rgba(255,255,255,0.5)', marginTop:'1.8rem', textAlign:'center', maxWidth:'440px', lineHeight:1.7, letterSpacing:'0.01em' }}>
+          See everything in extraordinary detail.<br />
+          From everyday creativity to extreme precision.
+        </p>
+      </FadeUp>
+
+      <FadeUp delay={0.72} y={18}>
+        <div style={{ marginTop:'2.4rem', display:'flex', alignItems:'center', gap:12 }}>
+          <span style={{ display:'block', width:8, height:8, borderRadius:'50%', background:'#00C4FF', boxShadow:'0 0 12px #00C4FF' }}/>
+          <div style={{ width:40, height:'1px', background:'rgba(255,255,255,0.2)' }}/>
+          <span style={{ fontFamily:'Outfit,sans-serif', fontSize:11, letterSpacing:'0.32em', color:'rgba(255,255,255,0.28)', textTransform:'uppercase' }}>Studio Display · Pro Display XDR</span>
+          <div style={{ width:40, height:'1px', background:'rgba(255,255,255,0.2)' }}/>
+          <span style={{ display:'block', width:8, height:8, borderRadius:'50%', background:'#BF5AF2', boxShadow:'0 0 12px #BF5AF2' }}/>
+        </div>
+      </FadeUp>
+    </div>
+  );
+
+  /* ─── SLIDE 2 — STUDIO DISPLAY ────────────────────────────────── */
+  const StudioSlide = () => {
+    const specs = [
+      { icon:'🖥️', label:'Retina Resolution', value:'5K', sub:'5120 × 2880 pixels', accent:'#00C4FF' },
+      { icon:'📷', label:'Ultra Wide Camera', value:'12MP', sub:'Center Stage · Studio Light', accent:'#00C4FF' },
+      { icon:'🔊', label:'Six-Speaker Audio', value:'6+1', sub:'Spatial audio · Subwoofer', accent:'#00C4FF' },
+      { icon:'💡', label:'Sustained Brightness', value:'600', sub:'nits · True Tone · P3', accent:'#00C4FF' },
+    ];
+    return (
+      <div style={{ width:'100%', height:'100%', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', padding:'clamp(20px,4vw,56px)' }}>
+        <Orb c="#00C4FF" s="700px" top="-25%" left="38%" opacity={0.11} blur={200} cls="float-anim"/>
+        <Orb c="#0050FF" s="380px" top="55%" left="-8%" opacity={0.13} blur={130} cls="float-anim-2"/>
+        <div className="grid-bg" style={{ opacity:0.6 }}/>
+
+        <div style={{ maxWidth:1120, width:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'clamp(24px,4vw,60px)', alignItems:'center' }}>
+          {/* ── Left text ── */}
+          <div>
+            <FadeUp delay={0.08}>
+              <p style={{ fontFamily:'Outfit,sans-serif', fontSize:11, letterSpacing:'0.38em', color:'#00C4FF', textTransform:'uppercase', marginBottom:'0.9rem', opacity:0.85 }}>
+                For Everyone
+              </p>
+            </FadeUp>
+            <FadeUp delay={0.18} y={30}>
+              <h2 style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(36px,5.5vw,72px)', fontWeight:900, letterSpacing:'-0.04em', lineHeight:0.9, color:'#fff', marginBottom:'1rem' }}>
+                Studio<br/>
+                <span style={{ color:'#00C4FF', textShadow:'0 0 40px rgba(0,196,255,0.4)' }}>Display</span>
+              </h2>
+            </FadeUp>
+            <FadeUp delay={0.3} y={20}>
+              <p style={{ fontFamily:'DM Sans,sans-serif', fontSize:'clamp(12px,1.3vw,15px)', fontWeight:300, color:'rgba(255,255,255,0.52)', lineHeight:1.75, maxWidth:370, marginBottom:'1.6rem' }}>
+                A 27-inch 5K Retina display with an astonishing level of detail, an advanced camera built for video calls, and a beautiful thin design.
+              </p>
+            </FadeUp>
+            <FadeUp delay={0.42} y={16}>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <div className="glass" style={{ padding:'10px 20px', display:'inline-flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(18px,2vw,24px)', fontWeight:800, color:'#fff' }}>$1,599</span>
+                  <div style={{ width:1, height:20, background:'rgba(255,255,255,0.18)' }}/>
+                  <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'rgba(255,255,255,0.42)' }}>starting price</span>
+                </div>
+                <div className="glass" style={{ padding:'10px 14px' }}>
+                  <span style={{ fontFamily:'Outfit,sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.6)' }}>27" · Thunderbolt 3</span>
+                </div>
+              </div>
+            </FadeUp>
+          </div>
+
+          {/* ── Right display + specs ── */}
+          <div>
+            <FadeUp delay={0.26}>
+              <div style={{ display:'flex', justifyContent:'center', marginBottom:'clamp(14px,2vw,24px)' }}>
+                <div style={{ filter:'drop-shadow(0 0 40px rgba(0,196,255,0.25))' }}>
+                  <DisplaySVG accent="#00C4FF" w={Math.min(300, window.innerWidth * 0.28)}/>
+                </div>
+              </div>
+            </FadeUp>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {specs.map((s,i) => (
+                <FadeUp key={i} delay={0.46 + i*0.09} y={14}>
+                  <SpecCard {...s}/>
+                </FadeUp>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ─── SLIDE 3 — PRO DISPLAY XDR ───────────────────────────────── */
+  const ProSlide = () => {
+    const specs = [
+      { icon:'🔍', label:'Extreme Resolution', value:'6K', sub:'6016 × 3384 pixels', accent:'#BF5AF2' },
+      { icon:'☀️', label:'Peak HDR Brightness', value:'1600', sub:'nits · XDR standard', accent:'#FF9F0A' },
+      { icon:'⚫', label:'Contrast Ratio', value:'1M:1', sub:'Reference-grade quality', accent:'#BF5AF2' },
+      { icon:'🎨', label:'Color Accuracy', value:'P3', sub:'Wide color · True Tone', accent:'#FF9F0A' },
+    ];
+    return (
+      <div style={{ width:'100%', height:'100%', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', padding:'clamp(20px,4vw,56px)' }}>
+        <Orb c="#9B2FE8" s="650px" top="-20%" left="-12%" opacity={0.14} blur={180} cls="float-anim-2"/>
+        <Orb c="#FF6B00" s="480px" top="38%" left="52%" opacity={0.14} blur={150} cls="float-anim"/>
+        <div className="grid-bg" style={{ opacity:0.6 }}/>
+
+        <div style={{ maxWidth:1120, width:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'clamp(24px,4vw,60px)', alignItems:'center' }}>
+          {/* ── Left display + specs ── */}
+          <div>
+            <FadeUp delay={0.26}>
+              <div style={{ display:'flex', justifyContent:'center', marginBottom:'clamp(14px,2vw,24px)' }}>
+                <div style={{ filter:'drop-shadow(0 0 50px rgba(191,90,242,0.3))' }}>
+                  <DisplaySVG accent="#BF5AF2" w={Math.min(300, window.innerWidth * 0.28)}/>
+                </div>
+              </div>
+            </FadeUp>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {specs.map((s,i) => (
+                <FadeUp key={i} delay={0.46 + i*0.09} y={14}>
+                  <SpecCard {...s}/>
+                </FadeUp>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Right text ── */}
+          <div>
+            <FadeUp delay={0.08}>
+              <p style={{ fontFamily:'Outfit,sans-serif', fontSize:11, letterSpacing:'0.38em', color:'#FF9F0A', textTransform:'uppercase', marginBottom:'0.9rem', opacity:0.9 }}>
+                Extreme Dynamic Range
+              </p>
+            </FadeUp>
+            <FadeUp delay={0.18} y={30}>
+              <h2 style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(36px,5.5vw,72px)', fontWeight:900, letterSpacing:'-0.04em', lineHeight:0.9, color:'#fff', marginBottom:'1rem' }}>
+                Pro Display<br/>
+                <span style={{
+                  background:'linear-gradient(100deg, #BF5AF2, #FF9F0A)',
+                  WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+                }}>XDR</span>
+              </h2>
+            </FadeUp>
+            <FadeUp delay={0.30} y={20}>
+              <p style={{ fontFamily:'DM Sans,sans-serif', fontSize:'clamp(12px,1.3vw,15px)', fontWeight:300, color:'rgba(255,255,255,0.52)', lineHeight:1.75, maxWidth:370, marginBottom:'1.6rem' }}>
+                The world's best pro display. 32 inches of breathtaking 6K Retina for cinema, color grading, image retouching, and scientific visualisation.
+              </p>
+            </FadeUp>
+            <FadeUp delay={0.42} y={16}>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  { k:'Display glass', v:'Nano-texture or standard' },
+                  { k:'Refresh rate', v:'60Hz · ProMotion-ready' },
+                  { k:'Starting at', v:'$4,999' },
+                ].map((item,i) => (
+                  <div key={i} className="glass" style={{ padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{item.k}</span>
+                    <span style={{ fontFamily:'Outfit,sans-serif', fontSize:14, fontWeight:700, color:'#fff' }}>{item.v}</span>
+                  </div>
+                ))}
+              </div>
+            </FadeUp>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ─── SLIDE 4 — COMPARISON ────────────────────────────────────── */
+  const CompareSlide = () => {
+    const rows = [
+      { f:'Screen Size',            s:'27"',                   p:'32"' },
+      { f:'Resolution',             s:'5K · 5120×2880',        p:'6K · 6016×3384' },
+      { f:'Pixels per inch',        s:'218 ppi',               p:'218 ppi' },
+      { f:'Max Brightness (SDR)',   s:'600 nits',              p:'1000 nits' },
+      { f:'Peak Brightness (HDR)',  s:'—',                     p:'1600 nits' },
+      { f:'Contrast Ratio',         s:'1,000:1',               p:'1,000,000:1' },
+      { f:'Built-in Camera',        s:'12MP Ultra Wide',       p:'—' },
+      { f:'Nano-texture glass',     s:'Optional',              p:'Optional' },
+      { f:'Starting Price',         s:'$1,599',                p:'$4,999' },
+      { f:'Ideal for',              s:'Creators & Teams',      p:'Cinema & Science' },
+    ];
+    return (
+      <div style={{ width:'100%', height:'100%', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', padding:'clamp(16px,3vw,44px)' }}>
+        <Orb c="#00C4FF" s="500px" top="-35%" left="-8%" opacity={0.07} blur={180}/>
+        <Orb c="#BF5AF2" s="500px" top="40%" left="58%" opacity={0.07} blur={180}/>
+        <div className="grid-bg"/>
+
+        <FadeUp delay={0.08} y={16}>
+          <p style={{ fontFamily:'Outfit,sans-serif', fontSize:11, letterSpacing:'0.38em', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', marginBottom:6, textAlign:'center' }}>
+            Side by side
+          </p>
+        </FadeUp>
+        <FadeUp delay={0.18} y={22}>
+          <h2 style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(26px,4vw,52px)', fontWeight:900, letterSpacing:'-0.04em', color:'#fff', marginBottom:'clamp(14px,2vw,28px)', textAlign:'center' }}>
+            Choose your display
+          </h2>
+        </FadeUp>
+
+        <FadeUp delay={0.3} y={18} style={{ width:'100%', display:'flex', justifyContent:'center' }}>
+          <div className="glass-strong" style={{ width:'100%', maxWidth:860, overflow:'hidden' }}>
+            {/* Header */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(255,255,255,0.09)' }}>
+              <div style={{ padding:'14px 18px' }}>
+                <span style={{ fontFamily:'Outfit,sans-serif', fontSize:11, fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase', color:'rgba(255,255,255,0.28)' }}>Feature</span>
+              </div>
+              <div style={{ padding:'14px 18px', textAlign:'center', borderLeft:'1px solid rgba(255,255,255,0.09)', background:'rgba(0,196,255,0.07)' }}>
+                <span style={{ fontFamily:'Outfit,sans-serif', fontSize:14, fontWeight:800, color:'#00C4FF', letterSpacing:'-0.01em' }}>Studio Display</span>
+              </div>
+              <div style={{ padding:'14px 18px', textAlign:'center', borderLeft:'1px solid rgba(255,255,255,0.09)', background:'rgba(191,90,242,0.07)' }}>
+                <span style={{ fontFamily:'Outfit,sans-serif', fontSize:14, fontWeight:800, color:'#BF5AF2', letterSpacing:'-0.01em' }}>Pro Display XDR</span>
+              </div>
+            </div>
+
+            {rows.map((row, i) => {
+              const isDash_s = row.s === '—';
+              const isDash_p = row.p === '—';
+              const isPrice = row.f === 'Starting Price';
+              const isLast = i === rows.length - 1;
+              return (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.055)' }}>
+                  <div style={{ padding:'clamp(7px,1vw,11px) 18px', fontFamily:'DM Sans,sans-serif', fontSize:'clamp(11px,1vw,13px)', color:'rgba(255,255,255,0.42)', display:'flex', alignItems:'center' }}>
+                    {row.f}
+                  </div>
+                  <div style={{ padding:'clamp(7px,1vw,11px) 18px', textAlign:'center', borderLeft:'1px solid rgba(255,255,255,0.06)', background:'rgba(0,196,255,0.025)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(11px,1vw,13px)', fontWeight: isPrice ? 800 : 600, color: isDash_s ? 'rgba(255,255,255,0.18)' : (isPrice ? '#fff' : '#ddd'), letterSpacing: isPrice ? '-0.01em' : 'normal' }}>
+                      {row.s}
+                    </span>
+                  </div>
+                  <div style={{ padding:'clamp(7px,1vw,11px) 18px', textAlign:'center', borderLeft:'1px solid rgba(255,255,255,0.06)', background:'rgba(191,90,242,0.025)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ fontFamily:'Outfit,sans-serif', fontSize:'clamp(11px,1vw,13px)', fontWeight: isPrice ? 800 : 600, color: isDash_p ? 'rgba(255,255,255,0.18)' : (isPrice ? '#fff' : '#ddd'), letterSpacing: isPrice ? '-0.01em' : 'normal' }}>
+                      {row.p}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </FadeUp>
+      </div>
+    );
+  };
+
+  /* ─── Slide registry ──────────────────────────────────────────── */
+  const SLIDES = [HeroSlide, StudioSlide, ProSlide, CompareSlide];
+  const NAMES  = ['Overview', 'Studio Display', 'Pro Display XDR', 'Comparison'];
+
+  /* ─── Slide variants ─────────────────────────────────────────── */
+  const slideVariants = {
+    enter: dir => ({ x: dir > 0 ? 80 : -80, opacity: 0, scale: 0.97, filter:'blur(4px)' }),
+    center: {       x: 0,                    opacity: 1, scale: 1,    filter:'blur(0px)' },
+    exit:  dir => ({ x: dir > 0 ? -80 : 80, opacity: 0, scale: 0.97, filter:'blur(4px)' }),
+  };
+
+  /* ─── Navigation Arrow ───────────────────────────────────────── */
+  const Arrow = ({ side, onClick, disabled }) => (
+    <motion.button
+      onClick={onClick}
+      disabled={disabled}
+      className="glass"
+      whileHover={!disabled ? { scale: 1.12, x: side === 'left' ? -3 : 3 } : {}}
+      whileTap={!disabled ? { scale: 0.93 } : {}}
+      style={{
+        position:'fixed', top:'50%', [side]: 20,
+        transform:'translateY(-50%)',
+        width:46, height:46, borderRadius:'50%',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        opacity: disabled ? 0.18 : 1,
+        cursor: disabled ? 'default' : 'pointer',
+        zIndex: 100,
+        transition: 'opacity 0.3s',
+      }}
+    >
+      <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+        <path
+          d={side === 'left' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'}
+          stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
+        />
+      </svg>
+    </motion.button>
+  );
+
+  /* ─── Dot Navigation ─────────────────────────────────────────── */
+  const Dots = ({ current, onChange }) => (
+    <div style={{ position:'fixed', bottom:28, left:'50%', transform:'translateX(-50%)', display:'flex', gap:8, zIndex:100,
+      background:'rgba(255,255,255,0.06)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)',
+      border:'1px solid rgba(255,255,255,0.1)', borderRadius:24, padding:'8px 14px', alignItems:'center' }}>
+      {SLIDES.map((_,i) => (
+        <motion.button
+          key={i}
+          onClick={() => onChange(i)}
+          title={NAMES[i]}
+          whileHover={{ scale: 1.3 }}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            width: i === current ? 26 : 8, height: 8,
+            borderRadius: 4,
+            background: i === current ? '#fff' : 'rgba(255,255,255,0.28)',
+            transition: 'width 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.3s',
+          }}
+        />
+      ))}
+    </div>
+  );
+
+  /* ─── Slide name indicator ───────────────────────────────────── */
+  const SlideLabel = ({ current }) => (
+    <motion.div
+      key={current}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.4 }}
+      style={{ position:'fixed', top:24, left:'50%', transform:'translateX(-50%)', zIndex:100,
+        background:'rgba(255,255,255,0.07)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)',
+        border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, padding:'6px 18px',
+        fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:600,
+        letterSpacing:'0.12em', color:'rgba(255,255,255,0.55)', textTransform:'uppercase',
+        pointerEvents:'none' }}
+    >
+      <span style={{ color:'rgba(255,255,255,0.25)', marginRight:8 }}>{String(current+1).padStart(2,'0')}</span>
+      {NAMES[current]}
+    </motion.div>
+  );
+
+  /* ─── Keyboard hint ──────────────────────────────────────────── */
+  const KeyHint = ({ visible }) => (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+          transition={{ delay:1.5, duration:0.6 }}
+          style={{ position:'fixed', bottom:76, right:24, zIndex:100, display:'flex', gap:6, alignItems:'center', pointerEvents:'none' }}
+        >
+          {['←','→'].map(k => (
+            <div key={k} style={{ width:26, height:26, borderRadius:6, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontFamily:'DM Sans,sans-serif', fontSize:12, color:'rgba(255,255,255,0.3)' }}>
+              {k}
+            </div>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ─── APP ─────────────────────────────────────────────────────── */
+  function App() {
+    const [cur, setCur]   = useState(0);
+    const [dir, setDir]   = useState(0);
+    const [hint, setHint] = useState(true);
+    const curRef = useRef(0);
+    curRef.current = cur;
+
+    const goTo = (idx) => {
+      if (idx === curRef.current) return;
+      setDir(idx > curRef.current ? 1 : -1);
+      setCur(idx);
+      setHint(false);
+    };
+    const next = () => { if (curRef.current < N-1) goTo(curRef.current + 1); };
+    const prev = () => { if (curRef.current > 0)   goTo(curRef.current - 1); };
+
+    useEffect(() => {
+      const h = e => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  next();
+        if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    prev();
+      };
+      window.addEventListener('keydown', h);
+      return () => window.removeEventListener('keydown', h);
+    }, []);
+
+    const Slide = SLIDES[cur];
+
+    return (
+      <div style={{ width:'100vw', height:'100vh', overflow:'hidden', background:'#000', position:'relative' }}>
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div
+            key={cur}
+            custom={dir}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            style={{ position:'absolute', inset:0, willChange:'transform' }}
+          >
+            <Slide/>
+          </motion.div>
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          <SlideLabel key={cur} current={cur}/>
+        </AnimatePresence>
+
+        <Arrow side="left"  onClick={prev} disabled={cur === 0}   />
+        <Arrow side="right" onClick={next} disabled={cur === N-1} />
+        <Dots current={cur} onChange={goTo}/>
+        <KeyHint visible={hint && cur === 0}/>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
